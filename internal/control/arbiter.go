@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	shutdownTimeout  = time.Minute
-	arbiterPubSub    = "arbiter_events"
-	competitorPubSub = "competitor_events"
+	shutdownTimeout = time.Minute
+	arbiterPubSub   = "arbiter_events"
 )
 
 type Arbiter struct {
