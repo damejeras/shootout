@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/damejeras/hometask/internal/app"
 	"github.com/damejeras/hometask/internal/infrastructure"
 )
 
@@ -20,6 +21,14 @@ type State struct {
 
 	competitors map[string]*Competitor
 	lock        *sync.Mutex
+}
+
+func NewState(cfg *app.ArbiterConfig) *State {
+	return &State{
+		playerNumber: cfg.Competitors,
+		competitors:  make(map[string]*Competitor),
+		lock:         new(sync.Mutex),
+	}
 }
 
 func (s *State) Emit() (*infrastructure.Event, error) {

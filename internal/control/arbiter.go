@@ -3,8 +3,11 @@ package control
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/damejeras/hometask/internal/app"
@@ -20,12 +23,25 @@ const (
 )
 
 type Arbiter struct {
-	cfg         app.ArbiterConfig
+	cfg         *app.ArbiterConfig
 	ctx         context.Context
 	cancel      context.CancelFunc
 	state       *shootout.State
 	logger      *log.Logger
 	redisClient *redis.Client
+}
+
+func NewArbiter(cfg *app.ArbiterConfig, state *shootout.State, logger *log.Logger, redisClient *redis.Client) *Arbiter {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+
+	return &Arbiter{
+		ctx:         ctx,
+		cancel:      cancel,
+		cfg:         cfg,
+		state:       state,
+		logger:      logger,
+		redisClient: redisClient,
+	}
 }
 
 func (a *Arbiter) Run() {
@@ -95,6 +111,7 @@ func (a *Arbiter) beat() {
 	if err != nil {
 		a.logger.Printf("emit event: %v", err)
 		a.cancel()
+		return
 	}
 
 	payload, err := json.Marshal(event)
@@ -103,6 +120,8 @@ func (a *Arbiter) beat() {
 		a.cancel()
 		return
 	}
+
+	fmt.Println(string(payload))
 
 	if err := a.redisClient.Publish(a.ctx, arbiterPubSub, payload).Err(); err != nil {
 		a.logger.Printf("publish event: %v", err)

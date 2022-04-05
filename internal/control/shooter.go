@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 
 	"github.com/damejeras/hometask/internal/app"
 	"github.com/damejeras/hometask/internal/infrastructure"
@@ -32,6 +34,19 @@ type Shooter struct {
 	shotChan    chan *shootout.Shot
 	redisClient *redis.Client
 	logger      *log.Logger
+}
+
+func NewShooter(cfg *app.ShooterConfig, redisClient *redis.Client, logger *log.Logger) *Shooter {
+	ctx, cancelFn := signal.NotifyContext(context.Background(), os.Interrupt)
+
+	return &Shooter{
+		cfg:         cfg,
+		ctx:         ctx,
+		cancel:      cancelFn,
+		shotChan:    make(chan *shootout.Shot),
+		redisClient: redisClient,
+		logger:      logger,
+	}
 }
 
 func (s *Shooter) Run() {
