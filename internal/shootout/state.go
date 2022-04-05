@@ -50,7 +50,6 @@ func (s *State) Emit() (*infrastructure.Event, error) {
 	}
 
 	return infrastructure.NewEvent(infrastructure.TypeRound, &Round{
-		ID:          s.round,
 		Competitors: s.competitors,
 	})
 }
@@ -112,7 +111,7 @@ func (s *State) handleShot(event *infrastructure.Event) error {
 		return ErrUnacceptablePayload
 	}
 
-	s.competitors[shot.To].Health = s.competitors[shot.From].Damage
+	s.competitors[shot.To].Health -= s.competitors[shot.From].Damage
 
 	if s.competitors[shot.To].Health < 1 {
 		delete(s.competitors, shot.To)

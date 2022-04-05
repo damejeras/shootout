@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/damejeras/hometask/internal/app"
 	"github.com/damejeras/hometask/internal/infrastructure"
@@ -56,11 +57,17 @@ func (s *Shooter) Run() {
 
 	for {
 		select {
+		// we expect to receive a message every second
 		case msg := <-sub.Channel():
 			if err := s.handleArbiterMessage(msg); err != nil {
 				s.logger.Printf("handle message from arbiter: %v", err)
 				s.cancel()
 			}
+		// communication is lost
+		case <-time.After(time.Second * 2):
+			s.logger.Printf("no heartbeat")
+			s.cancel()
+		// process was interrupted, or error occurred
 		case <-s.ctx.Done():
 			if err := sub.Close(); err != nil {
 				s.logger.Printf("close arbiter pub/sub: %v", err)
@@ -93,25 +100,25 @@ func (s *Shooter) handleArbiterMessage(msg *redis.Message) error {
 			return ErrUnexpectedEvent
 		}
 
-		var competitors map[string]*shootout.Competitor
-		if err := json.Unmarshal(event.Data, &competitors); err != nil {
+		var round shootout.Round
+		if err := json.Unmarshal(event.Data, &round); err != nil {
 			return fmt.Errorf("unmarshal competitors: %w", err)
 		}
 
-		_, ok := competitors[s.ID]
-		if len(competitors) == 1 && ok {
+		_, ok := round.Competitors[s.ID]
+		if len(round.Competitors) == 1 && ok {
 			fmt.Println("I WON")
 			s.cancel()
 			return nil
 		}
 
 		if !ok {
-			fmt.Printf("IM DEAD")
+			fmt.Println("IM DEAD")
 			s.cancel()
 			return nil
 		}
 
-		for target := range competitors {
+		for target := range round.Competitors {
 			if target != s.ID {
 				s.shotChan <- &shootout.Shot{
 					From: s.ID,
@@ -186,7 +193,7 @@ func (s *Shooter) dispatchShots() {
 			return
 		}
 
-		if err := s.redisClient.Publish(s.ctx, competitorPubSub, payload); err != nil {
+		if err := s.redisClient.Publish(s.ctx, competitorPubSub, payload).Err(); err != nil {
 			s.logger.Printf("publish shot event: %v", err)
 			s.cancel()
 			return

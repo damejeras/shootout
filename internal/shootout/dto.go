@@ -8,7 +8,6 @@ type Competitor struct {
 }
 
 type Round struct {
-	ID          int `json:"id"`
 	Competitors map[string]*Competitor
 }
 

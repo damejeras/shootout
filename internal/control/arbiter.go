@@ -1,6 +1,7 @@
 package control
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,12 +24,13 @@ const (
 )
 
 type Arbiter struct {
-	cfg         *app.ArbiterConfig
-	ctx         context.Context
-	cancel      context.CancelFunc
-	state       *shootout.State
-	logger      *log.Logger
-	redisClient *redis.Client
+	cfg           *app.ArbiterConfig
+	ctx           context.Context
+	cancel        context.CancelFunc
+	state         *shootout.State
+	logger        *log.Logger
+	redisClient   *redis.Client
+	lastRoundData json.RawMessage
 }
 
 func NewArbiter(cfg *app.ArbiterConfig, state *shootout.State, logger *log.Logger, redisClient *redis.Client) *Arbiter {
@@ -112,6 +114,19 @@ func (a *Arbiter) beat() {
 		a.logger.Printf("emit event: %v", err)
 		a.cancel()
 		return
+	}
+
+	if bytes.Equal(event.Data, a.lastRoundData) {
+		a.logger.Printf("state did not change, not enough competitors")
+		a.cancel()
+		return
+	}
+
+	// start remembering state when shootout is started
+	if event.Type == infrastructure.TypeRound {
+		defer func() {
+			a.lastRoundData = event.Data
+		}()
 	}
 
 	payload, err := json.Marshal(event)
