@@ -1,4 +1,4 @@
-module github.com/damejeras/hometask
+module github.com/damejeras/shootout
 
 go 1.18
 

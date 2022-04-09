@@ -7,9 +7,9 @@ import (
 	"log"
 
 	"github.com/JeremyLoy/config"
-	"github.com/damejeras/hometask/internal/app"
-	"github.com/damejeras/hometask/internal/control"
-	"github.com/damejeras/hometask/internal/shootout"
+	"github.com/damejeras/shootout/internal/app"
+	"github.com/damejeras/shootout/internal/control"
+	"github.com/damejeras/shootout/internal/shootout"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/wire"
 )

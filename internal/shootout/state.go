@@ -6,8 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/damejeras/hometask/internal/app"
-	"github.com/damejeras/hometask/internal/infrastructure"
+	"github.com/damejeras/shootout/internal/app"
+	"github.com/damejeras/shootout/internal/infrastructure"
 )
 
 var (

@@ -8,8 +8,8 @@ package main
 
 import (
 	"github.com/JeremyLoy/config"
-	"github.com/damejeras/hometask/internal/app"
-	"github.com/damejeras/hometask/internal/control"
+	"github.com/damejeras/shootout/internal/app"
+	"github.com/damejeras/shootout/internal/control"
 	"github.com/go-redis/redis/v8"
 	"log"
 )

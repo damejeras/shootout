@@ -12,9 +12,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/damejeras/hometask/internal/app"
-	"github.com/damejeras/hometask/internal/infrastructure"
-	"github.com/damejeras/hometask/internal/shootout"
+	"github.com/damejeras/shootout/internal/app"
+	"github.com/damejeras/shootout/internal/infrastructure"
+	"github.com/damejeras/shootout/internal/shootout"
 	"github.com/go-redis/redis/v8"
 )
 
