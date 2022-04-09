@@ -1,0 +1,20 @@
+# permissions for end users to view shootouts.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shootout-viewer-role
+rules:
+- apiGroups:
+  - cowboys.mejeras.lt
+  resources:
+  - shootouts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cowboys.mejeras.lt
+  resources:
+  - shootouts/status
+  verbs:
+  - get

@@ -1,0 +1,24 @@
+# permissions for end users to edit shootouts.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shootout-editor-role
+rules:
+- apiGroups:
+  - cowboys.mejeras.lt
+  resources:
+  - shootouts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cowboys.mejeras.lt
+  resources:
+  - shootouts/status
+  verbs:
+  - get
