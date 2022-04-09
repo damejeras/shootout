@@ -57,6 +57,15 @@ func (s *Shooter) Run() {
 
 	for {
 		select {
+		// finished
+		case <-s.ctx.Done():
+			if err := sub.Close(); err != nil {
+				s.logger.Printf("close arbiter pub/sub: %v", err)
+			}
+
+			close(s.shotChan)
+
+			return
 		// we expect to receive a message every second
 		case msg := <-sub.Channel():
 			if err := s.handleArbiterMessage(msg); err != nil {
@@ -67,15 +76,6 @@ func (s *Shooter) Run() {
 		case <-time.After(time.Second * 2):
 			s.logger.Printf("no heartbeat")
 			s.cancel()
-		// process was interrupted, or error occurred
-		case <-s.ctx.Done():
-			if err := sub.Close(); err != nil {
-				s.logger.Printf("close arbiter pub/sub: %v", err)
-			}
-
-			close(s.shotChan)
-
-			return
 		}
 	}
 }
