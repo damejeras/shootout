@@ -10,14 +10,16 @@ import (
 )
 
 var (
+	ErrNotStarted          = fmt.Errorf("shootout not started yet")
 	ErrAlreadyStarted      = fmt.Errorf("shootout already started")
 	ErrUnacceptablePayload = fmt.Errorf("unacceptable payload")
 	ErrFinished            = fmt.Errorf("shootout is finished")
+	ErrInvalidRegistration = fmt.Errorf("invalid registration event")
 )
 
 type State struct {
-	started, finished   bool
-	playerNumber, round int
+	started, finished bool
+	playerNumber      int
 
 	competitors map[string]*Competitor
 	lock        *sync.Mutex
@@ -40,16 +42,14 @@ func (s *State) Emit() (*infrastructure.Event, error) {
 	}
 
 	if !s.started {
-		return infrastructure.NewEvent(infrastructure.TypeHeartbeat, nil)
+		return infrastructure.NewEvent(infrastructure.EventHeartbeat, nil)
 	}
-
-	s.round++
 
 	if len(s.competitors) == 1 {
 		s.finished = true
 	}
 
-	return infrastructure.NewEvent(infrastructure.TypeRound, &Round{
+	return infrastructure.NewEvent(infrastructure.EventRound, &Round{
 		Competitors: s.competitors,
 	})
 }
@@ -59,9 +59,9 @@ func (s *State) Handle(event *infrastructure.Event) error {
 	defer s.lock.Unlock()
 
 	switch event.Type {
-	case infrastructure.TypeRegistration:
+	case infrastructure.EventRegistration:
 		return s.handleRegistration(event)
-	case infrastructure.TypeShot:
+	case infrastructure.EventShot:
 		return s.handleShot(event)
 	default:
 		return nil
@@ -73,13 +73,13 @@ func (s *State) handleRegistration(event *infrastructure.Event) error {
 		return ErrAlreadyStarted
 	}
 
-	if s.finished {
-		return ErrFinished
-	}
-
 	var competitor Competitor
 	if err := json.Unmarshal(event.Data, &competitor); err != nil {
 		return fmt.Errorf("unmarshal registration payload: %w", err)
+	}
+
+	if competitor.IsZero() {
+		return ErrInvalidRegistration
 	}
 
 	s.competitors[competitor.ID] = &competitor
@@ -92,6 +92,10 @@ func (s *State) handleRegistration(event *infrastructure.Event) error {
 }
 
 func (s *State) handleShot(event *infrastructure.Event) error {
+	if !s.started {
+		return ErrNotStarted
+	}
+
 	var shot Shot
 	if err := json.Unmarshal(event.Data, &shot); err != nil {
 		return fmt.Errorf("unmarshal shot payload: %w", err)
@@ -103,12 +107,14 @@ func (s *State) handleShot(event *infrastructure.Event) error {
 
 	_, ok := s.competitors[shot.From]
 	if !ok {
-		return ErrUnacceptablePayload
+		// too late, sorry
+		return nil
 	}
 
 	_, ok = s.competitors[shot.To]
 	if !ok {
-		return ErrUnacceptablePayload
+		// too late, sorry
+		return nil
 	}
 
 	s.competitors[shot.To].Health -= s.competitors[shot.From].Damage

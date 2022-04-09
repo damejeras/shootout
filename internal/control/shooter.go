@@ -89,13 +89,13 @@ func (s *Shooter) handleArbiterMessage(msg *redis.Message) error {
 	s.logger.Printf("event %q received", event.Type)
 
 	switch event.Type {
-	case infrastructure.TypeHeartbeat:
+	case infrastructure.EventHeartbeat:
 		if s.ID == "" {
 			return s.register()
 		}
 
 		return nil
-	case infrastructure.TypeRound:
+	case infrastructure.EventRound:
 		if s.ID == "" {
 			return ErrUnexpectedEvent
 		}
@@ -107,13 +107,13 @@ func (s *Shooter) handleArbiterMessage(msg *redis.Message) error {
 
 		_, ok := round.Competitors[s.ID]
 		if len(round.Competitors) == 1 && ok {
-			fmt.Println("I WON")
+			log.Println("I WON")
 			s.cancel()
 			return nil
 		}
 
 		if !ok {
-			fmt.Println("IM DEAD")
+			log.Println("IM DEAD")
 			s.cancel()
 			return nil
 		}
@@ -179,7 +179,7 @@ func (s *Shooter) register() error {
 
 func (s *Shooter) dispatchShots() {
 	for shot := range s.shotChan {
-		event, err := infrastructure.NewEvent(infrastructure.TypeShot, shot)
+		event, err := infrastructure.NewEvent(infrastructure.EventShot, shot)
 		if err != nil {
 			s.logger.Printf("create shot event: %v", err)
 			s.cancel()

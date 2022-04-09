@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	TypeHeartbeat    EventType = "heartbeat"
-	TypeRegistration           = "registration"
-	TypeRound                  = "round"
-	TypeShot                   = "shot"
+	EventHeartbeat    EventType = "heartbeat"
+	EventRegistration           = "registration"
+	EventRound                  = "round"
+	EventShot                   = "shot"
 )
 
 type EventType string

@@ -7,6 +7,10 @@ type Competitor struct {
 	Damage int    `json:"damage"`
 }
 
+func (c *Competitor) IsZero() bool {
+	return Competitor{} == *c
+}
+
 type Round struct {
 	Competitors map[string]*Competitor
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +21,12 @@ const (
 	shutdownTimeout = time.Minute
 	arbiterPubSub   = "arbiter_events"
 )
+
+type registrationRequest struct {
+	Name   string `json:"name"`
+	Health int    `json:"health"`
+	Damage int    `json:"damage"`
+}
 
 type Arbiter struct {
 	cfg           *app.ArbiterConfig
@@ -116,17 +121,14 @@ func (a *Arbiter) beat() {
 		return
 	}
 
+	if event.Type == infrastructure.EventRound {
+		defer func() { a.lastRoundData = event.Data }()
+	}
+
 	if bytes.Equal(event.Data, a.lastRoundData) {
 		a.logger.Printf("state did not change, not enough competitors")
 		a.cancel()
 		return
-	}
-
-	// start remembering state when shootout is started
-	if event.Type == infrastructure.TypeRound {
-		defer func() {
-			a.lastRoundData = event.Data
-		}()
 	}
 
 	payload, err := json.Marshal(event)
@@ -135,8 +137,6 @@ func (a *Arbiter) beat() {
 		a.cancel()
 		return
 	}
-
-	fmt.Println(string(payload))
 
 	if err := a.redisClient.Publish(a.ctx, arbiterPubSub, payload).Err(); err != nil {
 		a.logger.Printf("publish event: %v", err)
@@ -165,7 +165,7 @@ func (a *Arbiter) handleRegistration(w http.ResponseWriter, r *http.Request) {
 		Damage: request.Damage,
 	}
 
-	event, err := infrastructure.NewEvent(infrastructure.TypeRegistration, &competitor)
+	event, err := infrastructure.NewEvent(infrastructure.EventRegistration, &competitor)
 	if err != nil {
 		a.logger.Printf("create registration event: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -188,10 +188,4 @@ func (a *Arbiter) handleRegistration(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-}
-
-type registrationRequest struct {
-	Name   string `json:"name"`
-	Health int    `json:"health"`
-	Damage int    `json:"damage"`
 }
