@@ -26,7 +26,7 @@ kubectl logs --max-log-requests 7 --prefix --pod-running-timeout=20s -f -l shoot
 ```
 kubectl delete shootouts.cowboys.mejeras.lt shootout-sample
 cd operator
-rm kustomize
+rm bin/kustomize
 make uninstall
 ```
 
