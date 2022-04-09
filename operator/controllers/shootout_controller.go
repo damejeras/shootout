@@ -167,60 +167,61 @@ func (r *ShootoutReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.Update(shootout)
 	}
 
+	var containers []corev1.Container
 	// we have arbiter and redis running, lets start shooter pods
 	for i := range shootout.Spec.Shooters {
-		shooterPod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      shootout.Name + "-shooter-" + strings.ToLower(shootout.Spec.Shooters[i].Name),
-				Namespace: shootout.Namespace,
-				Labels: map[string]string{
-					"shootout": shootout.Name,
+		containers = append(containers, corev1.Container{
+			Name:  "shooter-" + strings.ToLower(shootout.Spec.Shooters[i].Name),
+			Image: "shootout-shooter:latest",
+			Env: []corev1.EnvVar{
+				{
+					Name:  "COMPETITORS",
+					Value: strconv.Itoa(len(shootout.Spec.Shooters)),
+				},
+				{
+					Name:  "REDIS_ADDR",
+					Value: redisPodIP + ":6379",
+				},
+				{
+					Name:  "ARBITER_ADDR",
+					Value: "http://" + arbiterPodIP + ":8888",
+				},
+				{
+					Name:  "SHOOTER_NAME",
+					Value: shootout.Spec.Shooters[i].Name,
+				},
+				{
+					Name:  "SHOOTER_HEALTH",
+					Value: strconv.Itoa(shootout.Spec.Shooters[i].Health),
+				},
+				{
+					Name:  "SHOOTER_DAMAGE",
+					Value: strconv.Itoa(shootout.Spec.Shooters[i].Damage),
 				},
 			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Name:  "shooter-" + strings.ToLower(shootout.Spec.Shooters[i].Name),
-						Image: "shootout-shooter:latest",
-						Env: []corev1.EnvVar{
-							{
-								Name:  "COMPETITORS",
-								Value: strconv.Itoa(len(shootout.Spec.Shooters)),
-							},
-							{
-								Name:  "REDIS_ADDR",
-								Value: redisPodIP + ":6379",
-							},
-							{
-								Name:  "ARBITER_ADDR",
-								Value: "http://" + arbiterPodIP + ":8888",
-							},
-							{
-								Name:  "SHOOTER_NAME",
-								Value: shootout.Spec.Shooters[i].Name,
-							},
-							{
-								Name:  "SHOOTER_HEALTH",
-								Value: strconv.Itoa(shootout.Spec.Shooters[i].Health),
-							},
-							{
-								Name:  "SHOOTER_DAMAGE",
-								Value: strconv.Itoa(shootout.Spec.Shooters[i].Damage),
-							},
-						},
-						ImagePullPolicy: corev1.PullNever,
-					},
-				},
-				RestartPolicy: corev1.RestartPolicyNever,
-			},
-		}
+			ImagePullPolicy: corev1.PullNever,
+		})
+	}
 
-		if _, err := ctrl.CreateOrUpdate(ctx, r.Client, shooterPod, func() error {
-			return ctrl.SetControllerReference(shootout, shooterPod, r.Scheme)
-		}); err != nil {
-			logger.Error(err, "error creating shooter pod")
-			return ctrl.Result{}, err
-		}
+	shooterPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      shootout.Name + "-shooters",
+			Namespace: shootout.Namespace,
+			Labels: map[string]string{
+				"shootout": shootout.Name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers:    containers,
+			RestartPolicy: corev1.RestartPolicyNever,
+		},
+	}
+
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, shooterPod, func() error {
+		return ctrl.SetControllerReference(shootout, shooterPod, r.Scheme)
+	}); err != nil {
+		logger.Error(err, "error creating shooter pod")
+		return ctrl.Result{}, err
 	}
 
 	// TODO: collect corpses

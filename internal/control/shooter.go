@@ -86,8 +86,6 @@ func (s *Shooter) handleArbiterMessage(msg *redis.Message) error {
 		return fmt.Errorf("unmarshal payload: %w", err)
 	}
 
-	s.logger.Printf("event %q received", event.Type)
-
 	switch event.Type {
 	case infrastructure.EventHeartbeat:
 		if s.ID == "" {
@@ -107,13 +105,13 @@ func (s *Shooter) handleArbiterMessage(msg *redis.Message) error {
 
 		_, ok := round.Competitors[s.ID]
 		if len(round.Competitors) == 1 && ok {
-			log.Println("I WON")
+			log.Println("🏆 Winner 🏆")
 			s.cancel()
 			return nil
 		}
 
 		if !ok {
-			log.Println("IM DEAD")
+			log.Println("💀 Dead 💀")
 			s.cancel()
 			return nil
 		}

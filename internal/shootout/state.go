@@ -3,6 +3,7 @@ package shootout
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/damejeras/hometask/internal/app"
@@ -118,6 +119,13 @@ func (s *State) handleShot(event *infrastructure.Event) error {
 	}
 
 	s.competitors[shot.To].Health -= s.competitors[shot.From].Damage
+
+	log.Printf(
+		"🔫 %s inflicted %d damage for %s 🔫",
+		s.competitors[shot.From].Name,
+		s.competitors[shot.From].Damage,
+		s.competitors[shot.To].Name,
+	)
 
 	if s.competitors[shot.To].Health < 1 {
 		delete(s.competitors, shot.To)
